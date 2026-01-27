@@ -1,24 +1,19 @@
 #!/usr/bin/env python3
-"""Integration test comparing CLI (package) and addon (fallback) outputs.
+"""Integration test verifying addon vendor sync is up-to-date.
 
-This test imports the same HTML file using both implementations and compares:
-- Object count
-- Object names
-- Transforms (location/rotation/scale)
-- Animation keyframes
-- Materials
+This test ensures that `make sync-addon` was run after any changes to the
+meshcat_html_importer package. It imports from both:
+1. The source package (packages/meshcat-html-importer/src/)
+2. The addon's vendored copy (blender_addons/meshcat_html_importer/vendor/)
 
-Run with: blender --background --python tests/test_cli_addon_parity.py
+Both should produce identical results since the vendored copy should be
+an exact copy of the source package.
+
+Run with: uv run pytest tests/test_addon_vendor_sync.py
 """
 
 import sys
-import math
 from pathlib import Path
-
-# Add package to path
-sys.path.insert(
-    0, str(Path(__file__).parent.parent / "packages/meshcat-html-importer/src")
-)
 
 import bpy
 
@@ -81,9 +76,7 @@ def extract_scene_data():
                                     )
                         elif hasattr(strip, "fcurves"):
                             for fcurve in strip.fcurves:
-                                obj_data["keyframe_count"] += len(
-                                    fcurve.keyframe_points
-                                )
+                                obj_data["keyframe_count"] += len(fcurve.keyframe_points)
             except (AttributeError, TypeError):
                 # Fallback for older Blender versions
                 if hasattr(action, "fcurves"):
@@ -114,18 +107,11 @@ def compare_tuples(a, b, tolerance=0.01):
 
 
 def compare_quaternions(a, b, tolerance=0.01):
-    """Compare quaternions allowing for q == -q equivalence.
-
-    In quaternion math, q and -q represent the same rotation.
-    """
+    """Compare quaternions allowing for q == -q equivalence."""
     if len(a) != 4 or len(b) != 4:
         return False
-
-    # Try direct comparison
     if compare_tuples(a, b, tolerance):
         return True
-
-    # Try negated comparison (q and -q are equivalent)
     negated_b = tuple(-x for x in b)
     return compare_tuples(a, negated_b, tolerance)
 
@@ -135,17 +121,14 @@ def compare_scenes(cli_data, addon_data):
     errors = []
     warnings = []
 
-    # Compare frame range
     if cli_data["frame_range"] != addon_data["frame_range"]:
         errors.append(
             f"Frame range mismatch: CLI={cli_data['frame_range']}, Addon={addon_data['frame_range']}"
         )
 
-    # Compare FPS
     if cli_data["fps"] != addon_data["fps"]:
         errors.append(f"FPS mismatch: CLI={cli_data['fps']}, Addon={addon_data['fps']}")
 
-    # Compare object count
     cli_names = set(cli_data["objects"].keys())
     addon_names = set(addon_data["objects"].keys())
 
@@ -154,7 +137,6 @@ def compare_scenes(cli_data, addon_data):
             f"Object count mismatch: CLI={len(cli_names)}, Addon={len(addon_names)}"
         )
 
-    # Find matching objects (by name or similar transform)
     only_in_cli = cli_names - addon_names
     only_in_addon = addon_names - cli_names
     common = cli_names & addon_names
@@ -164,7 +146,6 @@ def compare_scenes(cli_data, addon_data):
     if only_in_addon:
         warnings.append(f"Objects only in Addon: {sorted(only_in_addon)[:5]}...")
 
-    # Compare common objects
     transform_mismatches = []
     animation_mismatches = []
 
@@ -172,7 +153,6 @@ def compare_scenes(cli_data, addon_data):
         cli_obj = cli_data["objects"][name]
         addon_obj = addon_data["objects"][name]
 
-        # Compare transforms
         if not compare_tuples(cli_obj["location"], addon_obj["location"]):
             transform_mismatches.append(
                 f"{name}: location CLI={cli_obj['location']} vs Addon={addon_obj['location']}"
@@ -188,16 +168,14 @@ def compare_scenes(cli_data, addon_data):
                 f"{name}: scale CLI={cli_obj['scale']} vs Addon={addon_obj['scale']}"
             )
 
-        # Compare animation
         if cli_obj["has_animation"] != addon_obj["has_animation"]:
             animation_mismatches.append(
                 f"{name}: animation CLI={cli_obj['has_animation']} vs Addon={addon_obj['has_animation']}"
             )
         elif cli_obj["has_animation"]:
-            # Both have animation, compare keyframe counts (allow some tolerance)
             cli_kf = cli_obj["keyframe_count"]
             addon_kf = addon_obj["keyframe_count"]
-            if abs(cli_kf - addon_kf) > cli_kf * 0.1:  # 10% tolerance
+            if abs(cli_kf - addon_kf) > cli_kf * 0.1:
                 animation_mismatches.append(
                     f"{name}: keyframes CLI={cli_kf} vs Addon={addon_kf}"
                 )
@@ -225,9 +203,13 @@ def run_test():
         print(f"ERROR: Test file not found: {TEST_HTML}")
         return False
 
-    # Import using CLI (package)
-    print("\n1. Importing with CLI (package)...")
+    # Import using direct package import (CLI path)
+    print("\n1. Importing with direct package import...")
     clear_scene()
+
+    # Add package to path
+    pkg_path = Path(__file__).parent.parent / "packages/meshcat-html-importer/src"
+    sys.path.insert(0, str(pkg_path))
 
     from meshcat_html_importer.blender.scene_builder import build_scene_from_file
 
@@ -238,45 +220,26 @@ def run_test():
     print(f"   Frame range: {cli_data['frame_range']}")
     print(f"   FPS: {cli_data['fps']}")
 
-    # Import using addon fallback
-    print("\n2. Importing with Addon (fallback)...")
+    # Import using addon's vendored package (addon path)
+    print("\n2. Importing with addon's vendored package...")
     clear_scene()
 
-    # Import msgpack for the fallback to use
-    addon_path = Path(__file__).parent.parent / "blender_addons/meshcat_html_importer"
-    sys.path.insert(0, str(addon_path / "vendor"))
-    import msgpack as msgpack_module
+    # Clear cached imports to force reload from vendor path
+    modules_to_remove = [k for k in sys.modules if k.startswith("meshcat_html_importer")]
+    for mod in modules_to_remove:
+        del sys.modules[mod]
 
-    # Create a namespace for the exec with all necessary globals
-    exec_globals = {
-        "__builtins__": __builtins__,
-        "__name__": "__main__",
-        "__file__": str(addon_path / "operators.py"),
-        "bpy": bpy,
-        "msgpack": msgpack_module,
-    }
+    # Add addon vendor path
+    addon_vendor_path = (
+        Path(__file__).parent.parent / "blender_addons/meshcat_html_importer/vendor"
+    )
+    sys.path.insert(0, str(addon_vendor_path))
 
-    # Read the operators code
-    operators_code = open(addon_path / "operators.py").read()
-    # Replace ALL msgpack import blocks (there are two)
-    modified_code = operators_code.replace(
-        """try:
-    from .vendor import msgpack
-except ImportError:
-    try:
-        import msgpack
-    except ImportError:
-        msgpack = None""",
-        "# msgpack already injected",
+    from meshcat_html_importer.blender.scene_builder import (
+        build_scene_from_file as addon_build,
     )
 
-    # Execute the operators module in a controlled namespace
-    exec(modified_code, exec_globals)
-
-    # Get the fallback function from the exec namespace
-    fallback_import = exec_globals["_import_meshcat_html_fallback"]
-    result = fallback_import(TEST_HTML, target_fps=30)
-
+    addon_build(TEST_HTML, target_fps=30)
     bpy.ops.wm.save_as_mainfile(filepath=OUTPUT_ADDON)
     addon_data = extract_scene_data()
     print(f"   Objects: {len(addon_data['objects'])}")
@@ -290,22 +253,22 @@ except ImportError:
     if warnings:
         print("\nWarnings:")
         for w in warnings:
-            print(f"  ⚠ {w}")
+            print(f"  - {w}")
 
     if errors:
         print("\nErrors:")
         for e in errors:
-            print(f"  ✗ {e}")
-        print(f"\n❌ TEST FAILED: {len(errors)} errors found")
+            print(f"  - {e}")
+        print(f"\nTEST FAILED: {len(errors)} errors found")
         return False
     else:
-        print("\n✓ All checks passed!")
-        print(f"\n✅ TEST PASSED: CLI and Addon produce identical results")
+        print("\nAll checks passed!")
+        print("TEST PASSED: CLI and Addon produce identical results")
         return True
 
 
-def test_cli_addon_parity():
-    """Test that CLI and addon produce identical results."""
+def test_addon_vendor_sync():
+    """Test that vendored package is in sync with source package."""
     import pytest
 
     if not Path(TEST_HTML).exists():

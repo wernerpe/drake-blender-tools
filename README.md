@@ -36,9 +36,12 @@ drake-recording-server \
 
 Import meshcat HTML recordings (saved from the meshcat web viewer) into Blender with full geometry, materials, and animation support.
 
+**CLI usage** (requires `bpy` package):
 ```bash
 meshcat-html-import recording.html -o scene.blend
 ```
+
+**Blender addon** (recommended): File > Import > Meshcat Recording (.html) - see [addon installation](#meshcat-html-importer-blender_addonsmeshcat_html_importer) below.
 
 ## Blender Addons
 
@@ -126,9 +129,9 @@ You can now play back the animation in Blender.
 
 1. Save your meshcat visualization as HTML (using the save button in meshcat viewer)
 
-2. Either:
-   - Use the CLI: `meshcat-html-import recording.html -o scene.blend`
-   - Or use the Blender addon: File > Import > Meshcat Recording (.html)
+2. Import using either:
+   - **Blender addon** (recommended): File > Import > Meshcat Recording (.html)
+   - **CLI** (requires `bpy` package): `meshcat-html-import recording.html -o scene.blend`
 
 ## Examples
 
@@ -156,3 +159,20 @@ uv run ruff format .
 # Lint
 uv run ruff check .
 ```
+
+### Building the Blender Addon
+
+The meshcat HTML importer addon uses a vendored copy of the `meshcat-html-importer` package. After making changes to the package, sync and build the addon:
+
+```bash
+# Sync package code to addon vendor directory
+make sync-addon
+
+# Build addon zip for distribution
+make build-addon
+
+# Clean build artifacts
+make clean
+```
+
+The `make build-addon` target creates `meshcat_html_importer.zip` which can be installed in Blender via Edit > Preferences > Get Extensions > Install from Disk.
