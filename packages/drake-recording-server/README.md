@@ -8,14 +8,11 @@ This package implements Drake's glTF Render Client-Server API but instead of ren
 
 ## Installation
 
-```bash
-uv pip install drake-recording-server
-```
-
-Or from the monorepo root:
+From the monorepo root:
 
 ```bash
 uv sync
+uv pip install -e packages/drake-recording-server
 ```
 
 ## Usage

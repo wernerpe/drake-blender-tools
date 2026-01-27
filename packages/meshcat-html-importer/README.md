@@ -19,19 +19,18 @@ This package parses meshcat HTML recordings (saved from the meshcat web viewer) 
 
 ## Installation
 
-```bash
-uv pip install meshcat-html-importer
-```
-
-Or from the monorepo root:
+From the monorepo root:
 
 ```bash
 uv sync
+uv pip install -e packages/meshcat-html-importer
 ```
 
 ## Usage
 
 ### Command Line
+
+Requires the `bpy` package (Blender as a Python module):
 
 ```bash
 meshcat-html-import recording.html -o scene.blend

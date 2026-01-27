@@ -97,7 +97,9 @@ uv pip install -e packages/drake-recording-server -e packages/meshcat-html-impor
 
 ## Workflow
 
-### Recording from Drake Simulation
+### Recording Server Workflow
+
+#### Recording from Drake Simulation
 
 1. Start the recording server:
    ```bash
@@ -125,15 +127,7 @@ You can now play back the animation in Blender.
 
 ![Blender Playback](media/blender_imported_keyframes.gif)
 
-### Importing from Meshcat HTML
-
-1. Save your meshcat visualization as HTML (using the save button in meshcat viewer)
-
-2. Import using either:
-   - **Blender addon** (recommended): File > Import > Meshcat Recording (.html)
-   - **CLI** (requires `bpy` package): `meshcat-html-import recording.html -o scene.blend`
-
-## Examples
+#### Examples
 
 We provide pre-recorded example files in `examples/example_output/` for testing.
 
@@ -143,6 +137,14 @@ for controlling the iiwa arm.
 The final render might look something like this:
 
 ![Blender Playback](media/blender_playback.gif)
+
+### Meshcat HTML Importer Workflow
+
+1. Save your meshcat visualization as HTML (using the save button in meshcat viewer)
+
+2. Import using either:
+   - **Blender addon** (recommended): File > Import > Meshcat Recording (.html)
+   - **CLI** (requires `bpy` package): `meshcat-html-import recording.html -o scene.blend`
 
 ## Development
 
