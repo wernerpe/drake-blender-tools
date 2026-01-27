@@ -1,7 +1,9 @@
-# SPDX-License-Identifier: BSD-2-Clause
+# SPDX-License-Identifier: MIT
 # Modified from https://github.com/RobotLocomotion/drake-blender/blob/main/server.py
+"""Flask server for recording Drake simulation states as Blender keyframes."""
 
-import argparse
+from __future__ import annotations
+
 import dataclasses as dc
 import datetime
 import io
@@ -9,20 +11,17 @@ import math
 import pickle
 import tempfile
 import typing
-
 from pathlib import Path
 from types import NoneType
 
 import bpy
 import flask
-
 from PIL import Image
 
 
 @dc.dataclass
 class RenderParams:
-    """A dataclass that encapsulates all the necessary parameters to render a color,
-    depth, or label image.
+    """Encapsulates all parameters to render a color, depth, or label image.
 
     https://drake.mit.edu/doxygen_cxx/group__render__engine__gltf__client__server__api.html#render-endpoint-form-data
     """
@@ -43,48 +42,38 @@ class RenderParams:
     """Height of the desired rendered image in pixels."""
 
     near: float
-    """The near clipping plane of the camera as specified by the
-    RenderCameraCore's ClippingRange::near() value."""
+    """The near clipping plane of the camera."""
 
     far: float
-    """The far clipping plane of the camera as specified by the
-    RenderCameraCore's ClippingRange::far() value."""
+    """The far clipping plane of the camera."""
 
     focal_x: float
-    """The focal length x, in pixels, as specified by the
-    systems::sensors::CameraInfo::focal_x() value."""
+    """The focal length x, in pixels."""
 
     focal_y: float
-    """The focal length y, in pixels, as specified by the
-    systems::sensors::CameraInfo::focal_y() value."""
+    """The focal length y, in pixels."""
 
     fov_x: float
-    """The field of view in the x-direction (in radians) as specified by the
-    systems::sensors::CameraInfo::fov_x() value."""
+    """The field of view in the x-direction (in radians)."""
 
     fov_y: float
-    """The field of view in the y-direction (in radians) as specified by the
-    systems::sensors::CameraInfo::fov_y() value."""
+    """The field of view in the y-direction (in radians)."""
 
     center_x: float
-    """The principal point's x coordinate in pixels as specified by the
-    systems::sensors::CameraInfo::center_x() value."""
+    """The principal point's x coordinate in pixels."""
 
     center_y: float
-    """The principal point's y coordinate in pixels as specified by the
-    systems::sensors::CameraInfo::center_y() value."""
+    """The principal point's y coordinate in pixels."""
 
     min_depth: typing.Optional[float] = None
-    """The minimum depth range as specified by a depth sensor's
-    DepthRange::min_depth(). Only provided when image_type="depth"."""
+    """The minimum depth range. Only provided when image_type='depth'."""
 
     max_depth: typing.Optional[float] = None
-    """The maximum depth range as specified by a depth sensor's
-    DepthRange::max_depth(). Only provided when image_type="depth"."""
+    """The maximum depth range. Only provided when image_type='depth'."""
 
 
 class Blender:
-    """Encapsulates our access to blender.
+    """Encapsulates access to Blender.
 
     Note that even though this is a class, bpy is a singleton so likewise you
     should only ever create one instance of this class.
@@ -93,19 +82,19 @@ class Blender:
     def __init__(
         self,
         *,
-        blend_file: Path = None,
-        bpy_settings_file: Path = None,
-        export_path: Path = None,
-        keyframe_dump_path: Path = None,
+        blend_file: Path | None = None,
+        bpy_settings_file: Path | None = None,
+        export_path: Path | None = None,
+        keyframe_dump_path: Path | None = None,
     ):
         self._blend_file = blend_file
         self._bpy_settings_file = bpy_settings_file
         self._export_path = export_path
         self._keyframe_dump_path = keyframe_dump_path
 
-        self._keyframes = []
+        self._keyframes: list[list[dict]] = []
 
-        if self._keyframe_dump_path.exists():
+        if self._keyframe_dump_path and self._keyframe_dump_path.exists():
             response = input(
                 f"Keyframe dump path {self._keyframe_dump_path} already exists. Do "
                 "you want to delete it? [y/N]: "
@@ -118,20 +107,15 @@ class Blender:
                     "and user chose not to delete it."
                 )
 
-    def reset_scene(self):
-        """
-        Resets the scene in Blender by loading the default startup file, and
-        then removes the default cube object.
-        """
+    def reset_scene(self) -> None:
+        """Reset the scene by loading factory settings and removing default objects."""
         bpy.ops.wm.read_factory_settings()
         for item in bpy.data.objects:
             item.select_set(True)
         bpy.ops.object.delete()
 
-    def save_keyframe(self, *, params: RenderParams):
-        """
-        Saves the current object poses as a keyframe.
-        """
+    def save_keyframe(self, *, params: RenderParams) -> None:
+        """Save the current object poses as a keyframe."""
         # Load the blend file to set up the basic scene if provided.
         if self._blend_file is not None:
             bpy.ops.wm.open_mainfile(filepath=str(self._blend_file))
@@ -146,19 +130,17 @@ class Blender:
 
         self._client_objects = bpy.data.collections.new("ClientObjects")
         old_count = len(bpy.data.objects)
+
         # Import a glTF file. Note that the Blender glTF importer imposes a
         # +90 degree rotation around the X-axis when loading meshes. Thus, we
         # counterbalance the rotation right after the glTF-loading.
         bpy.ops.import_scene.gltf(filepath=str(params.scene))
         new_count = len(bpy.data.objects)
-        # Reality check that all of the imported objects are selected by
-        # default.
+
+        # Reality check that all of the imported objects are selected by default.
         assert new_count - old_count == len(bpy.context.selected_objects)
 
-        # TODO(#39) This rotation is very suspicious. Get to the bottom of it.
-        # We explicitly specify the pivot point for the rotation to allow for
-        # glTF files with root nodes with arbitrary positioning. We simply want
-        # to rotate around the world origin.
+        # Rotate to compensate for glTF coordinate system difference.
         bpy.ops.transform.rotate(
             value=math.pi / 2,
             orient_axis="X",
@@ -193,30 +175,28 @@ class Blender:
             self._export_path.parent.mkdir(parents=True, exist_ok=True)
             bpy.ops.wm.save_as_mainfile(filepath=str(self._export_path))
 
-    def dump_keyframes_to_disk(self):
-        with open(self._keyframe_dump_path, "wb") as f:
-            pickle.dump(self._keyframes, f)
+    def dump_keyframes_to_disk(self) -> None:
+        """Write accumulated keyframes to disk as a pickle file."""
+        if self._keyframe_dump_path:
+            with open(self._keyframe_dump_path, "wb") as f:
+                pickle.dump(self._keyframes, f)
 
 
 class ServerApp(flask.Flask):
-    """
-    The long-running Flask server application.
+    """Flask server application for recording Drake simulation states.
 
-    This class is used for recording Drake simulation states as a list of object poses
-    that can then be imported as keyframes in Blender.
-
-    Specifically, the server implements Drake's glTF Render Client-Server API but
-    instead of rendering an image, it saves the object poses as keyframes in Blender.
+    This server implements Drake's glTF Render Client-Server API but
+    instead of rendering an image, it saves the object poses as keyframes.
     """
 
     def __init__(
         self,
         *,
-        temp_dir,
-        blend_file: Path = None,
-        bpy_settings_file: Path = None,
-        export_path: Path = None,
-        keyframe_dump_path: Path = None,
+        temp_dir: str,
+        blend_file: Path | None = None,
+        bpy_settings_file: Path | None = None,
+        export_path: Path | None = None,
+        keyframe_dump_path: Path | None = None,
     ):
         super().__init__("drake_blender_recording_server")
 
@@ -229,32 +209,29 @@ class ServerApp(flask.Flask):
         )
 
         self.add_url_rule("/", view_func=self._root_endpoint)
-
-        endpoint = "/render"
         self.add_url_rule(
-            rule=endpoint,
-            endpoint=endpoint,
+            rule="/render",
+            endpoint="/render",
             methods=["POST"],
             view_func=self._render_endpoint,
         )
 
-    def _root_endpoint(self):
-        """Displays a banner page at the server root."""
+    def _root_endpoint(self) -> str:
+        """Display a banner page at the server root."""
         return """\
         <!doctype html>
         <html><body><h1>Drake Blender Recording Server</h1></body></html>
         """
 
     def _render_endpoint(self):
-        """
-        Accepts a request to render and returns the generated image.
+        """Accept a request to render and return a generated image.
 
-        NOTE that in practice this endpoint is saving the object poses and returns a
+        NOTE: In practice this endpoint saves the object poses and returns a
         fake image to satisfy the caller.
         """
         try:
             params = self._parse_params(flask.request)
-            buffer = self._save_keyframe(params)
+            self._save_keyframe(params)
 
             # Create the fake image.
             img = Image.new("RGB", (params.width, params.height), color="black")
@@ -276,7 +253,7 @@ class ServerApp(flask.Flask):
             )
 
     def _parse_params(self, request: flask.Request) -> RenderParams:
-        """Converts an http request to a RenderParams."""
+        """Convert an HTTP request to a RenderParams."""
         result = dict()
 
         # Compute a lookup table for known form field names.
@@ -286,7 +263,7 @@ class ServerApp(flask.Flask):
         # Copy all of the form data into the result.
         for name, value in request.form.items():
             if name == "submit":
-                # Ignore the html boilerplate.
+                # Ignore the HTML boilerplate.
                 continue
             field = param_fields[name]
             type_origin = typing.get_origin(field.type)
@@ -298,20 +275,14 @@ class ServerApp(flask.Flask):
                     raise ValueError(f"Invalid literal for {name}")
                 result[name] = value
             elif type_origin == typing.Union:
-                # In our dataclass we declare a typing.Optional but that's just
-                # sugar for typing.Union[T, typing.NoneType]. Here, we need to
-                # parse the typing.Union spelling; we can assume the only use
-                # of Union is for an Optional.
+                # Handle typing.Optional (Union[T, None]).
                 assert len(type_args) == 2
                 assert type_args[1] == NoneType
                 result[name] = type_args[0](value)
             else:
                 raise NotImplementedError(name)
 
-        # Save the glTF scene data. Note that we don't check the scene_sha256
-        # checksum; it seems unlikely that it could ever fail without flask
-        # detecting the error. In any case, the blender glTF loader should
-        # reject malformed files; we don't need to fail-fast.
+        # Save the glTF scene data.
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S-%f")
         scene = Path(f"{self._temp_dir}/{timestamp}.gltf")
         assert len(request.files) == 1
@@ -321,9 +292,7 @@ class ServerApp(flask.Flask):
         return RenderParams(**result)
 
     def _save_keyframe(self, params: RenderParams) -> None:
-        """
-        Saves the current object poses as a keyframe and dump all poses so far to disk.
-        """
+        """Save the current object poses as a keyframe and dump to disk."""
         self._blender.save_keyframe(params=params)
         print(f"Saved keyframe {len(self._blender._keyframes)}")
 
@@ -333,72 +302,23 @@ class ServerApp(flask.Flask):
         self._blender.dump_keyframes_to_disk()
 
 
-def main():
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument(
-        "--host",
-        type=str,
-        default="127.0.0.1",
-        help="URL to host on, default: %(default)s.",
-    )
-    parser.add_argument(
-        "--port",
-        type=int,
-        default=8000,
-        help="Port to host on, default: %(default)s.",
-    )
-    parser.add_argument(
-        "--blend_file",
-        type=Path,
-        metavar="FILE",
-        help="Path to a *.blend file.",
-    )
-    parser.add_argument(
-        "--export_path",
-        required=True,
-        type=Path,
-        help="Path to export the Blender scene before each render.",
-    )
-    parser.add_argument(
-        "--keyframe_dump_path",
-        required=True,
-        type=Path,
-        help="Path to dump keyframes to disk. Must be a pickle file.",
-    )
-    parser.add_argument(
-        "--bpy_settings_file",
-        type=Path,
-        metavar="FILE",
-        help="Path to a *.py file that the server will exec() to configure "
-        "blender. For example, the settings file might contain the line "
-        '`bpy.context.scene.render.engine = "EEVEE"` (with no backticks). '
-        "The settings file will be applied after loading the --blend_file "
-        "(if any) so that it has priority.",
-    )
-    args = parser.parse_args()
-
-    if args.export_path.suffix != ".blend":
-        raise ValueError(
-            "Expected export_path to have '.blend' suffix, "
-            f"got '{args.export_path.suffix}'"
-        )
-    if args.keyframe_dump_path.suffix != ".pkl":
-        raise ValueError(
-            "Expected keyframe_dump_path to have '.pkl' suffix, "
-            f"got '{args.keyframe_dump_path.suffix}'"
-        )
-
+def run_server(
+    *,
+    host: str = "127.0.0.1",
+    port: int = 8000,
+    blend_file: Path | None = None,
+    bpy_settings_file: Path | None = None,
+    export_path: Path,
+    keyframe_dump_path: Path,
+) -> None:
+    """Run the recording server."""
     prefix = "drake_blender_recorder_"
     with tempfile.TemporaryDirectory(prefix=prefix) as temp_dir:
         app = ServerApp(
             temp_dir=temp_dir,
-            blend_file=args.blend_file,
-            bpy_settings_file=args.bpy_settings_file,
-            export_path=args.export_path,
-            keyframe_dump_path=args.keyframe_dump_path,
+            blend_file=blend_file,
+            bpy_settings_file=bpy_settings_file,
+            export_path=export_path,
+            keyframe_dump_path=keyframe_dump_path,
         )
-        app.run(host=args.host, port=args.port, threaded=False)
-
-
-if __name__ == "__main__":
-    main()
+        app.run(host=host, port=port, threaded=False)
