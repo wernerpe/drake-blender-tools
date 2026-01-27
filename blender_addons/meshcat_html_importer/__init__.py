@@ -1,0 +1,44 @@
+# SPDX-License-Identifier: MIT
+"""Meshcat HTML Importer - Import meshcat recordings into Blender.
+
+This extension imports meshcat HTML recordings (saved from the meshcat web viewer)
+and converts them to Blender scenes with full animation support.
+"""
+
+import bpy
+
+from . import operators
+
+bl_info = {
+    "name": "Meshcat HTML Importer",
+    "author": "Nicholas Pfaff",
+    "version": (0, 1, 0),
+    "blender": (5, 0, 0),
+    "location": "File > Import > Meshcat Recording (.html)",
+    "description": "Import meshcat HTML recordings with geometry and animation",
+    "category": "Import-Export",
+}
+
+
+def menu_func_import(self, context):
+    """Add import menu entry."""
+    self.layout.operator(
+        operators.IMPORT_OT_meshcat_html.bl_idname,
+        text="Meshcat Recording (.html)",
+    )
+
+
+def register():
+    """Register the extension."""
+    operators.register()
+    bpy.types.TOPBAR_MT_file_import.append(menu_func_import)
+
+
+def unregister():
+    """Unregister the extension."""
+    bpy.types.TOPBAR_MT_file_import.remove(menu_func_import)
+    operators.unregister()
+
+
+if __name__ == "__main__":
+    register()

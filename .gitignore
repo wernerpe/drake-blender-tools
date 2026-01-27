@@ -1,9 +1,55 @@
+# Virtual environment
 .venv
-__pycache__
+venv/
+env/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Blender
 *.blend
 *.blend1
+!examples/example_output/example_start.blend
+!examples/example_output/example.blend
+
+# Data files
 *.pkl
+!examples/example_output/example.pkl
+
+# Media
 *.mp4
-!example_output/example_start.blend
-!example_output/example.blend
-!example_output/example.pkl
+*.avi
+*.mov
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# uv
+.uv/

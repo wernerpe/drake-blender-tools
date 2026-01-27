@@ -1,7 +1,6 @@
 # SPDX-License-Identifier: MIT-0
 
 import numpy as np
-
 from manipulation.meshcat_utils import WsgButton
 from manipulation.station import (
     LoadScenario,
