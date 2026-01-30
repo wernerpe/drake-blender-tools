@@ -8,8 +8,8 @@ import re
 from pathlib import Path
 from typing import Any
 
-from meshcat_html_importer.parser.command_types import Command
-from meshcat_html_importer.parser.msgpack_decoder import decode_msgpack
+from .command_types import Command
+from .msgpack_decoder import decode_msgpack
 
 # Pattern to match base64 msgpack data URIs
 # fetch("data:application/octet-binary;base64,<DATA>")

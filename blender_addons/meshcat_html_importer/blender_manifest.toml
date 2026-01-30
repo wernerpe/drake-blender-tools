@@ -7,7 +7,7 @@ tagline = "Import meshcat HTML recordings into Blender"
 maintainer = "Nicholas Pfaff <nepfaff@mit.edu>"
 
 type = "add-on"
-blender_version_min = "4.2.0"
+blender_version_min = "5.0.0"
 
 license = ["SPDX:BSD-2-Clause"]
 copyright = ["2024 Nicholas Pfaff"]
@@ -15,11 +15,5 @@ copyright = ["2024 Nicholas Pfaff"]
 # Tags for discovery
 tags = ["Import-Export", "Animation", "Mesh"]
 
-# Website and documentation
-# website = "https://github.com/..."
-
-# Permissions needed
-# permissions = []
-
-# Wheels to bundle (if using pip packages)
-# wheels = []
+[permissions]
+files = "Import meshcat HTML recordings from disk"

@@ -241,7 +241,7 @@ def _parse_meshfile_geometry(
             buffers = gltf.get("buffers") or []
             for buffer in buffers:
                 uri = buffer.get("uri", "")
-                if uri.startswith("cas-v1/"):
+                if uri.startswith(("cas-v1/", "cas-v1-")):
                     # Look up in CAS assets
                     if uri in cas_assets:
                         asset_data_uri = cas_assets[uri]
@@ -256,7 +256,7 @@ def _parse_meshfile_geometry(
             images = gltf.get("images") or []
             for image in images:
                 uri = image.get("uri", "")
-                if uri.startswith("cas-v1/"):
+                if uri.startswith(("cas-v1/", "cas-v1-")):
                     if uri in cas_assets:
                         asset_data_uri = cas_assets[uri]
                         binary_data = _decode_data_uri(asset_data_uri)

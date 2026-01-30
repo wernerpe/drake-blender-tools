@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 
 import bpy
 
-from meshcat_html_importer.scene.materials import (
+from ..scene.materials import (
     MaterialType,
     ParsedMaterial,
     shininess_to_roughness,
@@ -54,10 +54,8 @@ def create_material(
     output_socket = shader.outputs.get("BSDF") or shader.outputs.get("Shader")
     links.new(output_socket, output.inputs["Surface"])
 
-    # Set blend mode for transparent materials
-    if mat_data.transparent and mat_data.opacity < 1.0:
-        mat.blend_method = "BLEND"
-        mat.shadow_method = "CLIP"
+    # Note: blend_method/shadow_method were removed in Blender 4.0.
+    # Transparency is handled via the shader node tree (Alpha input on Principled BSDF).
 
     # Set backface culling based on side
     if mat_data.side == "front":

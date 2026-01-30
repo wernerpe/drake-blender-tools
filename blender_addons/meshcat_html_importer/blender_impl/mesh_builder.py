@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING
 import bpy
 import numpy as np
 
-from meshcat_html_importer.scene.geometry import (
+from ..scene.geometry import (
     GeometryType,
     MeshFileGeometry,
     MeshGeometry,
@@ -18,7 +18,7 @@ from meshcat_html_importer.scene.geometry import (
 )
 
 if TYPE_CHECKING:
-    from meshcat_html_importer.scene.scene_graph import SceneNode
+    from ..scene.scene_graph import SceneNode
 
 
 def create_mesh_object(

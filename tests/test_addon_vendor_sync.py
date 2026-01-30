@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-"""Integration test verifying addon vendor sync is up-to-date.
+"""Integration test verifying addon sync is up-to-date.
 
 This test ensures that `make sync-addon` was run after any changes to the
 meshcat_html_importer package. It imports from both:
 1. The source package (packages/meshcat-html-importer/src/)
-2. The addon's vendored copy (blender_addons/meshcat_html_importer/vendor/)
+2. The addon's synced copy (blender_addons/meshcat_html_importer/)
 
-Both should produce identical results since the vendored copy should be
-an exact copy of the source package.
+Both should produce identical results since the addon's subpackages are
+synced from the source package (with imports converted to relative).
 
 Run with: uv run pytest tests/test_addon_vendor_sync.py
 """
@@ -220,22 +220,22 @@ def run_test():
     print(f"   Frame range: {cli_data['frame_range']}")
     print(f"   FPS: {cli_data['fps']}")
 
-    # Import using addon's vendored package (addon path)
-    print("\n2. Importing with addon's vendored package...")
+    # Import using addon's synced package (addon path)
+    print("\n2. Importing with addon's synced package...")
     clear_scene()
 
-    # Clear cached imports to force reload from vendor path
+    # Clear cached imports to force reload from addon path
     modules_to_remove = [k for k in sys.modules if k.startswith("meshcat_html_importer")]
     for mod in modules_to_remove:
         del sys.modules[mod]
 
-    # Add addon vendor path
-    addon_vendor_path = (
-        Path(__file__).parent.parent / "blender_addons/meshcat_html_importer/vendor"
+    # Add addon path (the extension root acts as the package)
+    addon_path = (
+        Path(__file__).parent.parent / "blender_addons"
     )
-    sys.path.insert(0, str(addon_vendor_path))
+    sys.path.insert(0, str(addon_path))
 
-    from meshcat_html_importer.blender.scene_builder import (
+    from meshcat_html_importer.blender_impl.scene_builder import (
         build_scene_from_file as addon_build,
     )
 
@@ -268,7 +268,7 @@ def run_test():
 
 
 def test_addon_vendor_sync():
-    """Test that vendored package is in sync with source package."""
+    """Test that addon package is in sync with source package."""
     import pytest
 
     if not Path(TEST_HTML).exists():

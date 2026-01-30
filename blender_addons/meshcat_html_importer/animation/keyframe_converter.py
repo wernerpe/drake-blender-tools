@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from meshcat_html_importer.scene.scene_graph import AnimationKeyframe, SceneNode
+    from ..scene.scene_graph import AnimationKeyframe, SceneNode
 
 
 @dataclass
@@ -106,7 +106,7 @@ def downsample_keyframes(
         nearest_kf = time_by_kf[nearest_time]
 
         # Create new keyframe with adjusted time (as target frame number)
-        from meshcat_html_importer.scene.scene_graph import AnimationKeyframe
+        from ..scene.scene_graph import AnimationKeyframe
 
         new_kf = AnimationKeyframe(
             time=float(target_frame),  # Now in target frames

@@ -8,15 +8,15 @@ from typing import Any
 
 import numpy as np
 
-from meshcat_html_importer.parser.command_types import Command, CommandType
-from meshcat_html_importer.scene.geometry import (
+from ..parser.command_types import Command, CommandType
+from .geometry import (
     MeshFileGeometry,
     MeshGeometry,
     PrimitiveGeometry,
     parse_geometry,
 )
-from meshcat_html_importer.scene.materials import ParsedMaterial, parse_material
-from meshcat_html_importer.scene.transforms import (
+from .materials import ParsedMaterial, parse_material
+from .transforms import (
     Transform,
     combine_transforms,
     matrix_to_trs,

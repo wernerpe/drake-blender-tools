@@ -68,11 +68,12 @@ You should see a "Keyframe Importer" entry in the sidebar.
 
 A Blender extension to import meshcat HTML recordings directly.
 
-**Installation (Blender 4.2+):**
-1. Open Blender
-2. Edit > Preferences > Get Extensions
-3. Install from Disk... and select the `meshcat_html_importer` folder
-4. Enable the extension
+**Installation (Blender 5.0+):**
+1. Build the addon zip: `make build-addon` (or `cd blender_addons/meshcat_html_importer && zip -r ../meshcat_html_importer.zip .`)
+2. Open Blender
+3. Edit > Preferences > Get Extensions
+4. Click the dropdown arrow and select "Install from Disk..."
+5. Select the `meshcat_html_importer.zip` file
 
 **Usage:**
 1. File > Import > Meshcat Recording (.html)
@@ -164,10 +165,10 @@ uv run ruff check .
 
 ### Building the Blender Addon
 
-The meshcat HTML importer addon uses a vendored copy of the `meshcat-html-importer` package. After making changes to the package, sync and build the addon:
+The Blender addon's subpackages (`parser/`, `scene/`, `animation/`, `blender_impl/`) are synced from the `meshcat-html-importer` package source with absolute imports converted to relative imports (required by Blender 5.0's extension policy). After making changes to the package, sync and build the addon:
 
 ```bash
-# Sync package code to addon vendor directory
+# Sync package code to addon and convert imports
 make sync-addon
 
 # Build addon zip for distribution

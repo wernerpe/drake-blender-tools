@@ -1,28 +1,15 @@
 # SPDX-License-Identifier: MIT
-"""Blender operators for meshcat HTML import.
-
-This module uses the vendored meshcat_html_importer package for all import logic.
-Run `make sync-addon` to update the vendored package from the main source.
-"""
+"""Blender operators for meshcat HTML import."""
 
 from __future__ import annotations
-
-import sys
-from pathlib import Path
 
 import bpy
 from bpy.props import BoolProperty, FloatProperty, IntProperty, StringProperty
 from bpy.types import Operator
 from bpy_extras.io_utils import ImportHelper
 
-# Add vendor directory to path for bundled dependencies
-_vendor_dir = Path(__file__).parent / "vendor"
-if str(_vendor_dir) not in sys.path:
-    sys.path.insert(0, str(_vendor_dir))
-
-# Import from vendored package
-from meshcat_html_importer.blender.scene_builder import build_scene_from_file
-from meshcat_html_importer.parser import parse_html_recording
+from .blender_impl.scene_builder import build_scene_from_file
+from .parser import parse_html_recording
 
 
 class IMPORT_OT_meshcat_html(Operator, ImportHelper):

@@ -7,18 +7,18 @@ from typing import Any
 
 import bpy
 
-from meshcat_html_importer.blender.animation_builder import (
+from .animation_builder import (
     apply_animation,
     set_animation_range,
 )
-from meshcat_html_importer.blender.material_builder import (
+from .material_builder import (
     apply_material_to_object,
     create_default_material,
     create_material,
 )
-from meshcat_html_importer.blender.mesh_builder import create_mesh_object
-from meshcat_html_importer.parser import parse_html_recording
-from meshcat_html_importer.scene import SceneGraph, SceneNode
+from .mesh_builder import create_mesh_object
+from ..parser import parse_html_recording
+from ..scene import SceneGraph, SceneNode
 
 
 # Path prefixes to exclude (contact forces, collision geometry, inertia visualizers)
@@ -225,7 +225,7 @@ def _get_local_offset_from_ancestor(
     # This is: obj_world = anim_world * local_offset
     # So: local_offset = inverse(anim_world) * obj_world
     # For simplicity, we collect transforms from anim_node to obj_node
-    from meshcat_html_importer.scene.transforms import combine_transforms, Transform
+    from ..scene.transforms import combine_transforms, Transform
 
     # Start from animation node, walk down to object node
     # Collect all transforms between them
@@ -289,7 +289,7 @@ def _create_object_from_node(
     Returns:
         Blender object or None
     """
-    from meshcat_html_importer.scene.geometry import MeshFileGeometry
+    from ..scene.geometry import MeshFileGeometry
 
     # Derive a descriptive name from the path
     # Path format: /drake/illustration/<model_name>/base_link/<model_name>/visual

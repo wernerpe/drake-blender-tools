@@ -7,7 +7,7 @@ from typing import Any
 
 # Try vendored msgpack first (for Blender addon), then system package
 try:
-    from meshcat_html_importer.vendor import msgpack
+    from .. import _msgpack as msgpack
 except ImportError:
     import msgpack  # type: ignore
 

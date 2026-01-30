@@ -10,14 +10,14 @@ from typing import TYPE_CHECKING
 
 import bpy
 
-from meshcat_html_importer.animation.keyframe_converter import (
+from ..animation.keyframe_converter import (
     BlenderKeyframe,
     convert_keyframes_to_blender,
     get_animation_range,
 )
 
 if TYPE_CHECKING:
-    from meshcat_html_importer.scene.scene_graph import SceneNode
+    from ..scene.scene_graph import SceneNode
 
 
 def apply_animation(
@@ -106,11 +106,11 @@ def _apply_local_offset_to_keyframes(
     Returns:
         New list of keyframes with offset applied
     """
-    from meshcat_html_importer.scene.transforms import (
+    from ..scene.transforms import (
         Transform,
         combine_transforms,
     )
-    from meshcat_html_importer.animation.keyframe_converter import (
+    from ..animation.keyframe_converter import (
         convert_quaternion_to_blender,
     )
 
