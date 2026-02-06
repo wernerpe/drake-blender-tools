@@ -275,8 +275,11 @@ class SceneGraph:
         options = data.get("options", {})
 
         # Store FPS - Drake uses "fps" key, meshcat.js uses "play_fps"
-        fps_value = options.get("fps") or options.get("play_fps") or 64.0
-        self._animation_fps = float(fps_value)
+        fps_value = options.get("fps") or options.get("play_fps")
+        # Fall back to the clip-level fps from the first animation
+        if not fps_value and animations:
+            fps_value = animations[0].get("clip", {}).get("fps")
+        self._animation_fps = float(fps_value or 64.0)
 
         for anim in animations:
             path = anim.get("path", "")

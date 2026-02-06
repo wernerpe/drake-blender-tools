@@ -150,8 +150,13 @@ def parse_html_recording(html_path: Path | str) -> dict[str, Any]:
     for cmd in commands:
         if cmd.type.value == "set_animation":
             options = cmd.data.get("options", {})
-            # Drake uses "fps", meshcat.js uses "play_fps"
+            # Check options first: Drake uses "fps", meshcat.js uses "play_fps"
             fps = options.get("fps") or options.get("play_fps")
+            # Fall back to the clip-level fps from the first animation
+            if not fps:
+                animations = cmd.data.get("animations", [])
+                if animations:
+                    fps = animations[0].get("clip", {}).get("fps")
             if fps:
                 animation_fps = float(fps)
                 break
